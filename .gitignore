@@ -21,10 +21,17 @@ terraform.rc
 *.tfvars.json
 !*.tfvars.example
 
-# Module-level lock file is intentionally not committed (modules don't pin
-# providers; the consuming root module owns the lock). The example's lock
-# file IS committed for reproducible CI plans.
+# Module-level lock files are intentionally NOT committed: a reusable module
+# shouldn't pin its consumers to specific provider versions. The consuming
+# root module (here: examples/basic/) owns the lock file and IS committed
+# (no rule below excludes it) so CI plans are reproducible.
 modules/*/.terraform.lock.hcl
 
 # tfsec / trivy / checkov local scratch
 *.sarif
+
+# macOS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
