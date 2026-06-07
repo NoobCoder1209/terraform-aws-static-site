@@ -36,7 +36,7 @@ provider "aws" {
 }
 
 module "site" {
-  source = "github.com/<owner>/terraform-aws-static-site//modules/static-site?ref=v0.1.0"
+  source = "github.com/<owner>/terraform-aws-static-site//modules/static-site?ref=v0.1.1"
 
   providers = {
     aws           = aws
