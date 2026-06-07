@@ -19,8 +19,8 @@ variable "hosted_zone_id" {
   description = "Route53 public hosted zone ID that owns domain_name and every SAN. ACM DNS-validation records and the ALIAS records are written here."
 
   validation {
-    condition     = can(regex("^Z[A-Z0-9]+$", var.hosted_zone_id))
-    error_message = "hosted_zone_id must look like Z123ABC..."
+    condition     = can(regex("^Z[A-Z0-9]{12,21}$", var.hosted_zone_id))
+    error_message = "hosted_zone_id must look like Z123ABC... (13–22 chars, uppercase + digits)."
   }
 }
 

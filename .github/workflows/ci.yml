@@ -26,7 +26,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: "1.9.8"
+          terraform_version: "1.10.5"
           terraform_wrapper: false
 
       - name: Terraform fmt
@@ -49,7 +49,7 @@ jobs:
         run: terraform -chdir=examples/basic validate
 
       - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
+        uses: terraform-linters/setup-tflint@v6
         with:
           tflint_version: latest
 
@@ -60,7 +60,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: tflint --init
 
+      # GITHUB_TOKEN here too: --recursive re-runs init logic per directory and
+      # otherwise hits anonymous rate limits on the AWS plugin fetch.
       - name: Run TFLint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: tflint --recursive --format=compact
 
       - name: tfsec
@@ -69,9 +73,14 @@ jobs:
           soft_fail: true
           additional_args: --format sarif --out tfsec.sarif
 
+      # SARIF upload requires GitHub Advanced Security (free on public repos,
+      # paid on private). continue-on-error keeps CI green while the repo is
+      # private; once flipped public the upload will start populating the
+      # Security tab automatically.
       - name: Upload tfsec SARIF
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
+        continue-on-error: true
         with:
           sarif_file: tfsec.sarif
           category: tfsec

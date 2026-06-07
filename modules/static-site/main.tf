@@ -8,6 +8,10 @@ locals {
 
   origin_id = "s3-origin"
 
+  # bucket_prefix has a hard 37-char ceiling (S3 reserves room for a random
+  # suffix; total bucket name max is 63). Sanitize the domain (dots → dashes,
+  # wildcards expanded) and cap at 37 chars total — the provider appends its
+  # own separator-plus-random-suffix.
   bucket_name_prefix = substr(replace(replace(var.domain_name, ".", "-"), "*", "wildcard"), 0, 37)
 }
 
@@ -17,7 +21,7 @@ locals {
 
 resource "aws_s3_bucket" "this" {
   bucket        = var.bucket_name
-  bucket_prefix = var.bucket_name == null ? "${local.bucket_name_prefix}-" : null
+  bucket_prefix = var.bucket_name == null ? local.bucket_name_prefix : null
   tags          = var.tags
 }
 
