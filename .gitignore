@@ -1,0 +1,37 @@
+# Terraform working directories and provider mirrors
+.terraform/
+.terraform.tfstate.lock.info
+
+# State and crash logs (never commit)
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Local CLI overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# User-supplied tfvars — keep templates committed via the negation below
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+
+# Module-level lock files are intentionally NOT committed: a reusable module
+# shouldn't pin its consumers to specific provider versions. The consuming
+# root module (here: examples/basic/) owns the lock file and IS committed
+# (no rule below excludes it) so CI plans are reproducible.
+modules/*/.terraform.lock.hcl
+
+# tfsec / trivy / checkov local scratch
+*.sarif
+
+# macOS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
