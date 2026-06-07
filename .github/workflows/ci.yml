@@ -77,8 +77,14 @@ jobs:
         env:
           TFDOCS_VERSION: v0.24.0
         run: |
-          curl -sSLo terraform-docs.tar.gz \
-            "https://terraform-docs.io/dl/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-$(uname)-amd64.tar.gz"
+          base="https://terraform-docs.io/dl/${TFDOCS_VERSION}"
+          tarball="terraform-docs-${TFDOCS_VERSION}-$(uname)-amd64.tar.gz"
+          curl -sSLo terraform-docs.tar.gz  "${base}/${tarball}"
+          curl -sSLo terraform-docs.sha256  "${base}/terraform-docs-${TFDOCS_VERSION}.sha256sum"
+          # Verify the tarball matches the published checksum line for our asset.
+          grep " ${tarball}\$" terraform-docs.sha256 \
+            | sed "s| ${tarball}| terraform-docs.tar.gz|" \
+            | sha256sum -c -
           tar -xzf terraform-docs.tar.gz terraform-docs
           chmod +x terraform-docs
           sudo mv terraform-docs /usr/local/bin/terraform-docs
