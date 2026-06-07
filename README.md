@@ -87,7 +87,9 @@ The bucket and lock table are out of scope for this module — bootstrap them se
 
 ## Architecture
 
-![architecture](docs/architecture.png)
+![Architecture: Browser → Route53 ALIAS → CloudFront (with ACM us-east-1 viewer cert and optional WAFv2) → private S3 origin via OAC SigV4](docs/architecture.png)
+
+## Plan output
 
 A `terraform plan` capture is intentionally NOT included in this repo; reproducing one requires a real Route53 hosted zone and AWS credentials. See [`docs/screenshots/README.md`](./docs/screenshots/README.md) for instructions to capture your own.
 
