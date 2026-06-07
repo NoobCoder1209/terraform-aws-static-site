@@ -1,0 +1,12 @@
+# Copy this file to terraform.tfvars and replace the placeholders.
+# example.com is reserved by IANA and never resolves; replace before running plan.
+
+region            = "eu-central-1"
+domain_name       = "www.example.com"
+subject_alt_names = ["example.com"]
+hosted_zone_id    = "Z00000000000000000000"
+
+tags = {
+  Project = "terraform-aws-static-site-example"
+  Env     = "demo"
+}

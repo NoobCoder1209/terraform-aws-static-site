@@ -1,0 +1,86 @@
+# Static analysis CI for a Terraform module repository.
+# No AWS credentials are configured — `terraform plan/apply` against AWS is
+# intentionally OUT OF SCOPE. Only fmt, validate, lint, and security scanning run.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Job-level permissions are REQUIRED for SARIF upload to the Security tab.
+# Without `security-events: write`, upload-sarif fails silently with a 403.
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  terraform-static-analysis:
+    name: Terraform static analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+          terraform_wrapper: false
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      # `terraform validate` against the module standalone fails because the
+      # module declares `configuration_aliases = [aws.us_east_1]` and there is
+      # no real provider configuration to satisfy that slot — the alias is
+      # populated by the consuming root. We exercise the module via the
+      # example, which is the supported path. `terraform init -backend=false`
+      # on the module is still useful: it confirms the provider constraint is
+      # resolvable and produces a lock file locally for module authors.
+      - name: Terraform init (module)
+        run: terraform -chdir=modules/static-site init -backend=false
+
+      - name: Terraform init (example)
+        run: terraform -chdir=examples/basic init -backend=false
+
+      - name: Terraform validate (example)
+        run: terraform -chdir=examples/basic validate
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v6
+        with:
+          tflint_version: latest
+
+      # `tflint --init` reads .tflint.hcl from the repo root and downloads the
+      # AWS plugin. GITHUB_TOKEN avoids unauthenticated rate limits.
+      - name: Init TFLint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tflint --init
+
+      # GITHUB_TOKEN here too: --recursive re-runs init logic per directory and
+      # otherwise hits anonymous rate limits on the AWS plugin fetch.
+      - name: Run TFLint
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tflint --recursive --format=compact
+
+      - name: tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          soft_fail: true
+          additional_args: --format sarif --out tfsec.sarif
+
+      # SARIF upload requires GitHub Advanced Security (free on public repos,
+      # paid on private). continue-on-error keeps CI green while the repo is
+      # private; once flipped public the upload will start populating the
+      # Security tab automatically.
+      - name: Upload tfsec SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: tfsec.sarif
+          category: tfsec
