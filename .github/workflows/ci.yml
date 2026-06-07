@@ -67,6 +67,17 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: tflint --recursive --format=compact
 
+      # Verify the module README's auto-generated section has not drifted
+      # from the variables/outputs in code. Fails CI with a diff if anyone
+      # touches a variable without regenerating.
+      - name: terraform-docs (check)
+        uses: terraform-docs/gh-actions@v1.4.1
+        with:
+          working-dir: modules/static-site
+          config-file: ../../.terraform-docs.yml
+          output-method: inject
+          fail-on-diff: true
+
       - name: tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
