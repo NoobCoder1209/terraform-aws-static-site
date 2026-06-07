@@ -69,14 +69,23 @@ jobs:
 
       # Verify the module README's auto-generated section has not drifted
       # from the variables/outputs in code. Fails CI with a diff if anyone
-      # touches a variable without regenerating.
-      - name: terraform-docs (check)
-        uses: terraform-docs/gh-actions@v1.4.1
-        with:
-          working-dir: modules/static-site
-          config-file: ../../.terraform-docs.yml
-          output-method: inject
-          fail-on-diff: true
+      # touches a variable without regenerating. We download terraform-docs
+      # directly rather than using the gh-actions wrapper so that the entire
+      # behaviour is driven by .terraform-docs.yml (the wrapper passes its
+      # own template/output-file CLI flags that override the config file).
+      - name: Install terraform-docs
+        env:
+          TFDOCS_VERSION: v0.24.0
+        run: |
+          curl -sSLo terraform-docs.tar.gz \
+            "https://terraform-docs.io/dl/${TFDOCS_VERSION}/terraform-docs-${TFDOCS_VERSION}-$(uname)-amd64.tar.gz"
+          tar -xzf terraform-docs.tar.gz terraform-docs
+          chmod +x terraform-docs
+          sudo mv terraform-docs /usr/local/bin/terraform-docs
+          terraform-docs --version
+
+      - name: terraform-docs check
+        run: terraform-docs -c .terraform-docs.yml --output-check modules/static-site
 
       - name: tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
