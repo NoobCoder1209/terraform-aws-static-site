@@ -51,25 +51,25 @@ module "site" {
 <!-- BEGIN_TF_DOCS -->
 ## Inputs
 
-| Name | Type | Default | Required |
-|---|---|---|---|
-| `domain_name` | `string` | n/a | yes |
-| `hosted_zone_id` | `string` | n/a | yes |
-| `subject_alt_names` | `list(string)` | `[]` | no |
-| `bucket_name` | `string` | `null` | no |
-| `price_class` | `string` | `"PriceClass_100"` | no |
-| `default_root_object` | `string` | `"index.html"` | no |
-| `spa_mode` | `bool` | `true` | no |
-| `tags` | `map(string)` | `{}` | no |
-| `web_acl_id` | `string` | `null` | no |
+| Name | Description | Type | Default | Required |
+| ---- | ----------- | ---- | ------- | :------: |
+| bucket\_name | Optional S3 bucket name override. When null, the module derives a unique bucket\_prefix from domain\_name. | `string` | `null` | no |
+| default\_root\_object | Object served at /. | `string` | `"index.html"` | no |
+| domain\_name | Primary FQDN served by CloudFront (e.g. www.example.com). Becomes the certificate CN and the first CloudFront alias. | `string` | n/a | yes |
+| hosted\_zone\_id | Route53 public hosted zone ID that owns domain\_name and every SAN. ACM DNS-validation records and the ALIAS records are written here. | `string` | n/a | yes |
+| price\_class | CloudFront price class. PriceClass\_100 covers NA + EU; PriceClass\_200 adds Asia + ME; PriceClass\_All adds South America + Oceania. | `string` | `"PriceClass_100"` | no |
+| spa\_mode | When true, CloudFront rewrites 403 and 404 responses to /index.html with HTTP 200 so client-side routers can take over. | `bool` | `true` | no |
+| subject\_alt\_names | Extra FQDNs added as ACM SANs and CloudFront aliases. Wildcards (*.example.com) are supported. | `list(string)` | `[]` | no |
+| tags | Tags merged onto every taggable resource. | `map(string)` | `{}` | no |
+| web\_acl\_id | Optional AWS WAFv2 web ACL ARN attached to the distribution. Leave null to skip WAF. | `string` | `null` | no |
 
 ## Outputs
 
 | Name | Description |
-|---|---|
-| `bucket_name` | ID of the origin S3 bucket. |
-| `bucket_regional_domain` | Regional domain name of the origin bucket. |
-| `cloudfront_domain` | `*.cloudfront.net` hostname assigned to the distribution. |
-| `cloudfront_distribution_id` | Distribution ID; pass to invalidation tooling. |
-| `fqdn` | Primary FQDN configured on the distribution. |
+| ---- | ----------- |
+| bucket\_name | ID of the origin S3 bucket. |
+| bucket\_regional\_domain | Regional domain name of the origin bucket; useful for cross-account audits. |
+| cloudfront\_distribution\_id | Distribution ID; pass to invalidation tooling. |
+| cloudfront\_domain | *.cloudfront.net hostname assigned to the distribution. |
+| fqdn | Primary FQDN configured on the distribution. |
 <!-- END_TF_DOCS -->

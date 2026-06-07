@@ -1,0 +1,38 @@
+flowchart LR
+    user([Browser])
+
+    subgraph route53["Route53 hosted zone"]
+        direction TB
+        alias_a["ALIAS A · apex + SANs"]
+        alias_aaaa["ALIAS AAAA · apex + SANs"]
+    end
+
+    subgraph cf["CloudFront distribution"]
+        direction TB
+        viewer["HTTPS only · TLS 1.2_2021"]
+        cache["CachingOptimized + SecurityHeadersPolicy<br/>gzip + brotli"]
+        spa["SPA mode · 403/404 → /index.html"]
+    end
+
+    acm["ACM us-east-1<br/>DNS-validated cert<br/>(aliased provider)"]
+
+    subgraph s3["S3 private origin"]
+        direction TB
+        bucket["BucketOwnerEnforced · AES256<br/>public access blocked<br/>lifecycle: abort multipart > 7d"]
+        policy["Bucket policy<br/>cloudfront.amazonaws.com<br/>+ AWS:SourceArn"]
+    end
+
+    waf["WAFv2 web ACL<br/>(optional)"]
+
+    user -->|"HTTPS"| route53
+    route53 -->|"ALIAS"| cf
+    cf -->|"OAC · SigV4"| s3
+    acm -.->|"viewer cert"| cf
+    waf -.-> cf
+
+    classDef aws fill:#E8F1FA,stroke:#0972D3,color:#0F1B2A,stroke-width:1px
+    classDef ext fill:#FFFFFF,stroke:#5F6B7A,color:#0F1B2A
+    classDef opt fill:#F5F5F5,stroke:#5F6B7A,color:#0F1B2A,stroke-dasharray: 4 3
+    class route53,cf,s3,acm aws
+    class user ext
+    class waf opt
