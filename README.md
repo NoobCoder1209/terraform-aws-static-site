@@ -118,7 +118,7 @@ Runs on every push and pull request:
 | `terraform fmt -check -recursive` | Terraform 1.10 | Formatting drift |
 | `terraform init -backend=false` | Terraform | Provider resolution (module + example) |
 | `terraform validate` | Terraform | Type-check the example |
-| `tflint --recursive` | TFLint v0.x + AWS plugin | Lint rules + AWS-specific checks |
+| `tflint --recursive` | TFLint (latest) + `tflint-ruleset-aws` 0.47.0 | Lint rules + AWS-specific checks |
 | `tfsec` | tfsec | Static security analysis, SARIF output |
 
 No AWS credentials are configured. `terraform plan/apply` against AWS is intentionally out of scope.
