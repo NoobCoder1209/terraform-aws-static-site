@@ -1,6 +1,6 @@
 # Guide — `terraform-aws-static-site`
 
-> Last verified: 2026-06-09 against commit `1c5c6bb` (main). Ran every CI-equivalent step locally on macOS arm64 with Terraform v1.15.5 and `terraform-docs v0.24.0`: `terraform fmt -check -recursive` clean, `terraform init -backend=false` succeeded for both `modules/static-site/` and `examples/basic/`, `terraform validate` returned "Success! The configuration is valid." against the example, and `terraform-docs -c .terraform-docs.yml --output-check modules/static-site` reported the README is up to date. The credential-bound step (`terraform plan` against AWS) was NOT run — see [Demo verification status](#demo-verification-status) below.
+> Last verified: as of commit `1c5c6bb` (main HEAD before this PR), 2026-06-09. Ran every CI-equivalent step locally on macOS arm64 with Terraform v1.15.5 and `terraform-docs v0.24.0`: `terraform fmt -check -recursive` clean, `terraform init -backend=false` succeeded for both `modules/static-site/` and `examples/basic/`, `terraform validate` returned "Success! The configuration is valid." against the example, and `terraform-docs -c .terraform-docs.yml --output-check modules/static-site` reported the README is up to date. The credential-bound step (`terraform plan` against AWS) was NOT run — see [Demo verification status](#demo-verification-status) below.
 
 This document is for someone who has never touched the repo. It covers what the module does, how to exercise the demo end-to-end, what every directory contains, and how to recover from common failure modes.
 
@@ -145,14 +145,14 @@ terraform show -no-color tfplan.binary
 │       ├── main.tf                 S3 + OAC + CloudFront + ACM + Route53 resources
 │       ├── variables.tf            All 9 input variables with descriptions and validation
 │       ├── outputs.tf              5 outputs (bucket_name, cloudfront_domain, distribution_id, fqdn, regional_domain)
-│       ├── versions.tf             terraform >=1.7, aws ~> 5.50, configuration_aliases = [aws.us_east_1]
+│       ├── versions.tf             terraform >=1.7, aws >=5.50 <6.0, configuration_aliases = [aws.us_east_1]
 │       └── README.md               Module reference; inputs/outputs auto-generated between markers
 ├── examples/
 │   └── basic/                      MINIMAL CONSUMER OF THE MODULE
 │       ├── main.tf                 Two providers (default + us_east_1 alias) wired into a single module call
 │       ├── variables.tf            region, domain_name, subject_alt_names, hosted_zone_id, tags
 │       ├── outputs.tf              Re-exposes every module output
-│       ├── versions.tf             terraform >=1.7, aws ~> 5.50 (NO configuration_aliases — root modules don't use that)
+│       ├── versions.tf             terraform >=1.7, aws >=5.50 <6.0 (NO configuration_aliases — root modules don't use that)
 │       ├── terraform.tfvars.example  Template values; copy to terraform.tfvars before running plan
 │       ├── .terraform.lock.hcl     Committed for reproducible CI runs (consumer root owns the lock)
 │       └── README.md               Example-specific quick start
@@ -196,7 +196,7 @@ There are NO repository secrets configured in GitHub Actions — CI runs only st
 
 ### Layer 2 expected output
 
-A successful `terraform plan` produces a "Plan: N to add, 0 to change, 0 to destroy" line at the bottom. For this module with `domain_name`, no SANs, and SPA mode on, expect roughly **15 resources** to be created — the S3 bucket and its 5 sibling configurations, the OAC, the CloudFront distribution, the ACM certificate and its validation, the DNS validation Route53 record, and four ALIAS records (A + AAAA for the apex). Add 2 records per additional SAN.
+A successful `terraform plan` produces a "Plan: N to add, 0 to change, 0 to destroy" line at the bottom. For this module with `domain_name` only and **no SANs**, expect **13 resources** to be created — 6 S3 resources (bucket + 5 sibling configurations including the policy), 1 Origin Access Control, 1 CloudFront distribution, 1 ACM certificate + 1 ACM certificate validation, 1 DNS validation Route53 record, and 2 ALIAS records (A + AAAA for the apex). Add 2 more ALIAS records per SAN (a SAN that does not overlap an existing wildcard also adds 1 DNS validation record). SPA mode does NOT add resources — it's a `dynamic "custom_error_response"` block inside the existing CloudFront distribution.
 
 If you see a `Plan: 0 to add` line, something is wrong — see common failure modes below.
 
@@ -214,9 +214,9 @@ Expected. Child modules with `configuration_aliases` cannot be validated standal
 terraform -chdir=examples/basic validate
 ```
 
-### `Error: error reading Route53 Hosted Zone (Z00000000000000000000): NoSuchHostedZone`
+### `Error: reading Route 53 Hosted Zone (Z00000000000000000000): NoSuchHostedZone`
 
-Your `hosted_zone_id` in `terraform.tfvars` is the placeholder. Replace it with a real zone ID you own (`aws route53 list-hosted-zones --query 'HostedZones[].Id' --output table`).
+(Wording approximate; the AWS provider varies the casing slightly between versions.) Your `hosted_zone_id` in `terraform.tfvars` is the placeholder. Replace it with a real zone ID you own (`aws route53 list-hosted-zones --query 'HostedZones[].Id' --output table`).
 
 ### `Error: error creating ACM Certificate: ValidationException: ... not authorized`
 
