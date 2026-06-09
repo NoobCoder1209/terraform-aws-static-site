@@ -1,6 +1,6 @@
 # Guide — `terraform-aws-static-site`
 
-> Last verified: as of commit `1c5c6bb` (main HEAD before this PR), 2026-06-09. Ran every CI-equivalent step locally on macOS arm64 with Terraform v1.15.5 and `terraform-docs v0.24.0`: `terraform fmt -check -recursive` clean, `terraform init -backend=false` succeeded for both `modules/static-site/` and `examples/basic/`, `terraform validate` returned "Success! The configuration is valid." against the example, and `terraform-docs -c .terraform-docs.yml --output-check modules/static-site` reported the README is up to date. The credential-bound step (`terraform plan` against AWS) was NOT run — see [Demo verification status](#demo-verification-status) below.
+> Last verified: 2026-06-09 against the module and CI as of commit `1c5c6bb` (the parent of this PR; this PR adds only `guide.md` and does not change any `.tf` or CI file). Ran every CI-equivalent step locally on macOS arm64 with Terraform v1.15.5 and `terraform-docs v0.24.0`: `terraform fmt -check -recursive` clean, `terraform init -backend=false` succeeded for both `modules/static-site/` and `examples/basic/`, `terraform validate` returned "Success! The configuration is valid." against the example, and `terraform-docs -c .terraform-docs.yml --output-check modules/static-site` reported the README is up to date. The credential-bound step (`terraform plan` against AWS) was NOT run — see [Demo verification status](#demo-verification-status) below.
 
 This document is for someone who has never touched the repo. It covers what the module does, how to exercise the demo end-to-end, what every directory contains, and how to recover from common failure modes.
 
@@ -196,7 +196,7 @@ There are NO repository secrets configured in GitHub Actions — CI runs only st
 
 ### Layer 2 expected output
 
-A successful `terraform plan` produces a "Plan: N to add, 0 to change, 0 to destroy" line at the bottom. For this module with `domain_name` only and **no SANs**, expect **13 resources** to be created — 6 S3 resources (bucket + 5 sibling configurations including the policy), 1 Origin Access Control, 1 CloudFront distribution, 1 ACM certificate + 1 ACM certificate validation, 1 DNS validation Route53 record, and 2 ALIAS records (A + AAAA for the apex). Add 2 more ALIAS records per SAN (a SAN that does not overlap an existing wildcard also adds 1 DNS validation record). SPA mode does NOT add resources — it's a `dynamic "custom_error_response"` block inside the existing CloudFront distribution.
+A successful `terraform plan` produces a "Plan: N to add, 0 to change, 0 to destroy" line at the bottom. For this module with `domain_name` only and **no SANs**, expect **13 resources** to be created — 6 S3 resources (bucket + 5 sibling configurations including the policy), 1 Origin Access Control, 1 CloudFront distribution, 1 ACM certificate + 1 ACM certificate validation, 1 DNS validation Route53 record, and 2 ALIAS records (A + AAAA for the apex). Each additional SAN adds 3 resources (1 DNS validation record + 2 ALIAS records); a SAN that overlaps an existing wildcard parent adds only 2 (the DNS validation record dedupes by `dvo.domain_name`). SPA mode does NOT add resources — it's a `dynamic "custom_error_response"` block inside the existing CloudFront distribution.
 
 If you see a `Plan: 0 to add` line, something is wrong — see common failure modes below.
 
@@ -300,7 +300,7 @@ terraform init
 terraform plan
 ```
 
-Expected: a clean `Plan: 15 to add, 0 to change, 0 to destroy` (or 15 + 2 per SAN). If it succeeds, please update this file's "Last verified" line at the top to confirm Layer 2 was exercised.
+Expected: a clean `Plan: 13 to add, 0 to change, 0 to destroy` for the apex-only-no-SANs case. Each non-overlapping SAN adds 3 resources (1 DNS validation record + 2 ALIAS records); a SAN that overlaps an existing wildcard adds only 2 (the validation record dedupes). If it succeeds, please update this file's "Last verified" line at the top to confirm Layer 2 was exercised.
 
 ## README screenshot status
 
